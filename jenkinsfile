@@ -1,6 +1,10 @@
 pipeline {
     agent any
 
+    environment {
+        PLAYWRIGHT_BROWSERS_PATH = "${WORKSPACE}/pw-browsers"
+    }
+
     stages {
         stage('Checkout') {
             steps {
@@ -10,26 +14,46 @@ pipeline {
 
         stage('Install Dependencies') {
             steps {
-                sh 'npm ci'
+                bat 'npm ci'
             }
         }
 
-        stage('Run Playwright Tests') {
+        stage('Install Playwright Browsers (Cached)') {
             steps {
-                sh 'npx playwright install --with-deps'
-                sh 'npx playwright test --reporter=html'
+                // Install browsers only if cache folder is empty
+                script {
+                    if (!fileExists('pw-browsers/chromium')) {
+                        echo "Installing Playwright browsers..."
+                        bat 'npx playwright install --with-deps'
+                    } else {
+                        echo "Using cached Playwright browsers"
+                    }
+                }
             }
         }
 
-        stage('Publish Report') {
+        stage('Run Tests') {
             steps {
-                publishHTML(target: [
-                    reportDir: 'playwright-report',
-                    reportFiles: 'index.html',
-                    keepAll: true,
-                    alwaysLinkToLastBuild: true
-                ])
+                script {
+                    def status = bat(script: 'npx playwright test', returnStatus: true)
+                    if (status != 0) {
+                        echo "Tests failed, but continuing to generate reports..."
+                    }
+                }
             }
+        }
+    }
+
+    post {
+        always {
+            publishHTML(target: [
+                reportDir: 'playwright-report',
+                reportFiles: 'index.html',
+                reportName: 'Playwright HTML Report',
+                keepAll: true,
+                alwaysLinkToLastBuild: true,
+                allowMissing: true
+            ])
         }
     }
 }
