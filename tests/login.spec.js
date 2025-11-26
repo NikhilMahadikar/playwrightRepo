@@ -4,7 +4,7 @@ import data from "../testData/testData.json"
 
 
 test (`"Test automation for VTiger Login @highPr`,async ({page})=>{
-    await page.goto(data[0].goto);
+     await page.goto(data.gotoUrl);
     let crmPage=new CRMLoginPage(page);
-   await crmPage.userCredentials(data[1].userName,data[1].password)
+   await crmPage.userCredentials(data.loginCredentials.userName,data.loginCredentials.password)
 });
