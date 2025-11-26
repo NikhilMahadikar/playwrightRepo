@@ -1,34 +1,11 @@
 pipeline {
     agent any
 
-    environment {
-        PLAYWRIGHT_BROWSERS_PATH = "${WORKSPACE}/pw-browsers"
-    }
-
     stages {
-        stage('Checkout') {
-            steps {
-                checkout scm
-            }
-        }
-
         stage('Install Dependencies') {
             steps {
-                bat 'npm ci'
-            }
-        }
-
-        stage('Install Playwright Browsers (Cached)') {
-            steps {
-                // Install browsers only if cache folder is empty
-                script {
-                    if (!fileExists('pw-browsers/chromium')) {
-                        echo "Installing Playwright browsers..."
-                        bat 'npx playwright install --with-deps'
-                    } else {
-                        echo "Using cached Playwright browsers"
-                    }
-                }
+                bat 'npm install'
+                bat 'npx playwright install'
             }
         }
 
@@ -46,14 +23,21 @@ pipeline {
 
     post {
         always {
+            echo 'Generating HTML reports...'
+
+
             publishHTML(target: [
                 reportDir: 'playwright-report',
                 reportFiles: 'index.html',
                 reportName: 'Playwright HTML Report',
-                keepAll: true,
                 alwaysLinkToLastBuild: true,
-                allowMissing: true
+                keepAll: true,
+                 alwaysLinkToLastBuild: true,
+                allowMissing: true,
+                linkRelative: false
             ])
+
+        
         }
     }
 }
